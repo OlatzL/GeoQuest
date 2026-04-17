@@ -553,13 +553,10 @@
                             const lon = c[0];
                             const lat = c[1];
 
-                            // Europe bbox + Iceland
-                            const inEurope = lon > -32 && lon < 45 && lat > 34 && lat < 72;
+                            // Europe bbox + Iceland + Turkey + Russia
+                            const inEurope = lon > -32 && lon < 70 && lat > 34 && lat < 72;
 
-                            // Explicitly exclude Azores/Canaries area (rough)
-                            const isAzoresOrCanariesArea = lon < -10 && lat < 40;
-
-                            return inEurope && !isAzoresOrCanariesArea;
+                            return inEurope;
                         })
                     };
 
