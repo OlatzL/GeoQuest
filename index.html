@@ -340,7 +340,10 @@
             </div>
 
             <div id="map-viewport" style="width: 100%; height: 100%;">
-                <!-- SVG Map is injected dynamically by renderMap() -->
+                <!-- SVG Maps will be injected here -->
+                <svg id="game-map" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+                    <g id="map-layers"></g>
+                </svg>
             </div>
         </div>
 
@@ -508,23 +511,17 @@
             try {
                 const viewport = document.getElementById('map-viewport');
                 if (!viewport) throw new Error("map-viewport not found");
-
-                if (!state.mapData || !state.mapData.objects || !state.mapData.objects.countries) {
-                    throw new Error("Map data is invalid or not loaded");
-                }
-
-                viewport.innerHTML = '';
-
+                
+                viewport.innerHTML = '<svg id="game-map"></svg>';
+                
                 const width = viewport.clientWidth || window.innerWidth * 0.8;
                 const height = viewport.clientHeight || window.innerHeight * 0.6;
 
                 console.log(`Rendering map: ${width}x${height} for level: ${state.level}`);
 
-                svg = d3.select(viewport)
-                    .append("svg")
-                    .attr("id", "game-map")
-                    .attr("viewBox", `0 0 ${width} ${height}`)
-                    .attr("preserveAspectRatio", "xMidYMid meet");
+                svg = d3.select("#game-map")
+                    .attr("width", width)
+                    .attr("height", height);
 
                 // Add ocean background
                 svg.append("rect")
@@ -534,33 +531,29 @@
 
                 g = svg.append("g");
 
-                // Convert TopoJSON to GeoJSON
-                const countries = topojson.feature(state.mapData, state.mapData.objects.countries);
-                console.log(`Rendering ${countries.features.length} countries`);
-
-                // Build the feature collection used to frame the projection
-                let fitCollection;
+                // Setup projection
                 if (state.level === 'europe') {
-                    const europeIds = new Set(
-                        COUNTRIES_CONFIG.europe
-                            .map(c => Number(ISO_MAP[c.id]))
-                            .filter(id => !isNaN(id))
-                    );
-                    fitCollection = {
-                        type: 'FeatureCollection',
-                        features: countries.features.filter(f => europeIds.has(Number(f.id)))
-                    };
+                    projection = d3.geoMercator()
+                        .center([15, 52])
+                        .scale(width * 0.8)
+                        .translate([width / 2, height / 2]);
                 } else {
-                    fitCollection = countries;
+                    projection = d3.geoMercator()
+                        .scale(width / 6.5)
+                        .translate([width / 2, height / 1.5]);
                 }
 
-                // Setup projection with automatic fitSize – no manual scale/center/translate
-                projection = d3.geoMercator();
-                projection.fitSize([width, height], fitCollection);
                 pathGenerator = d3.geoPath().projection(projection);
 
+                if (!state.mapData || !state.mapData.objects || !state.mapData.objects.countries) {
+                    throw new Error("Map data is invalid or not loaded");
+                }
+
+                const countries = topojson.feature(state.mapData, state.mapData.objects.countries).features;
+                console.log(`Rendering ${countries.length} countries`);
+
                 g.selectAll("path")
-                    .data(countries.features)
+                    .data(countries)
                     .enter()
                     .append("path")
                     .attr("d", pathGenerator)
