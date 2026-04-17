@@ -741,3 +741,9 @@
         resetToMenu();
     };
 </script>
+// Function to render the map
+function renderMap() {
+    // Update Europe bounds filter to reduce Asian part of Russia
+    const bounds = (lon, lat) => lon > -32 && lon < 60 && lat > 34 && lat < 72;
+    // ... rest of the render code
+}
